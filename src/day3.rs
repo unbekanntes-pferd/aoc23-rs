@@ -1,20 +1,4 @@
-#[derive(Debug)]
-struct Engine {
-    rows: Vec<EngineRow>,
-}
-
-impl From<Vec<EngineRow>> for Engine {
-    fn from(rows: Vec<EngineRow>) -> Self {
-        Self { rows }
-    }
-}
-
-impl Engine {
-    fn get_orphan_numbers() -> Vec<u16> {}
-
-}
-
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct EngineRow {
     cells: Vec<EngineCell>,
 }
@@ -23,17 +7,9 @@ impl EngineRow {
     fn new(cells: Vec<EngineCell>) -> Self {
         Self { cells }
     }
-
-    fn get_row_cells(&self, row_id: usize) -> Vec<EngineCell> {
-        self.cells
-            .iter()
-            .filter(|cell| cell.row == row_id)
-            .map(|cell| *cell.clone())
-            .collect()
-    }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct EngineCell {
     value: Cell,
     index: usize,
@@ -47,52 +23,61 @@ impl EngineCell {
 
     fn is_symbol(&self) -> bool {
         match self.value {
-            Cell::Value(_) => true,
+            Cell::Symbol => true,
             _ => false,
         }
     }
 
-    fn is_orphan(&self, others: &[EngineRow]) -> bool {
+    fn is_orphan(
+        &self,
+        own_row: EngineRow,
+        upper_row: Option<EngineRow>,
+        lower_row: Option<EngineRow>,
+    ) -> bool {
         match self.value {
             Cell::Value(v) => {
-                let own_row: Vec<_> = others
-                    .iter()
-                    .filter(|rows| {
-                        let cells: Vec<_> = rows
-                            .cells
-                            .iter()
-                            .filter(|cell| cell.row == self.row)
-                            .collect();
-                        cells.len() > 0
+                eprintln!("Looking at val: {}", v);
+
+                let start_index = self.index;
+                let end_index = self.index + self.value.len() - 1; // Last index occupied by the numeric segment
+
+ 
+                let has_upper_neighbors = upper_row
+                    .map(|row| {
+                        row.cells.iter().any(|cell| {
+                            cell.is_symbol()
+                                && (cell.index >= start_index.saturating_sub(1)
+                                    && cell.index <= end_index + 1)
+                        })
                     })
-                    .collect();
+                    .unwrap_or(false);
 
-                let has_neighbors = own_row
-                    .iter()
-                    .find(|row| {
-                        row.cells
-                            .iter()
-                            .find(|cell| {
-                                cell.is_symbol()
-                                    && (cell.index == self.index
-                                        || (cell.index == self.index + self.value.len()))
-                            })
-                            .is_some()
+
+                let has_lower_neighbors = lower_row
+                    .map(|row| {
+                        row.cells.iter().any(|cell| {
+                            cell.is_symbol()
+                                && (cell.index >= start_index.saturating_sub(1)
+                                    && cell.index <= end_index + 1)
+                        })
                     })
-                    .is_some();
+                    .unwrap_or(false);
 
-                let has_upper_row_matches = if self.row > 0 {
-                    let upper_row_cells = 
-                }
+                // Check for same row neighbors
+                let has_neighbors = own_row.cells.iter().any(|cell| {
+                    cell.is_symbol()
+                        && ((start_index > 0 && cell.index == start_index - 1)
+                            || cell.index == end_index + 1)
+                });
 
-                has_neighbors
+                !has_neighbors && !has_upper_neighbors && !has_lower_neighbors
             }
             _ => false,
         }
     }
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 enum Cell {
     Empty,
     Symbol,
@@ -130,34 +115,15 @@ trait IntoEngineRows {
 
 impl IntoEngineRows for &str {
     fn into_engine_rows(&self) -> Vec<EngineRow> {
-        let rows = self
-            .split("\n")
+        self.lines()
             .enumerate()
             .filter(|(_, s)| !s.is_empty())
             .map(|(row, s)| {
-                let (_, segments) = s.chars().fold(
+                let (_, mut segments) = s.chars().fold(
                     (String::new(), Vec::new()),
                     |(mut current_segment, mut segments), ch| {
                         match ch {
-                            '.' => {
-                                if !current_segment.is_empty() {
-                                    segments.push(current_segment.clone());
-                                    current_segment.clear();
-                                }
-                                segments.push(".".to_string());
-                            }
-                            c if c.is_numeric() => {
-                                if current_segment.chars().all(char::is_numeric) {
-                                    current_segment.push(c);
-                                } else {
-                                    if !current_segment.is_empty() {
-                                        segments.push(current_segment.clone());
-                                        current_segment.clear();
-                                    }
-                                    current_segment.push(c);
-                                }
-                            }
-                            _ if !ch.is_alphanumeric() => {
+                            '.' | _ if !ch.is_alphanumeric() => {
                                 if !current_segment.is_empty() {
                                     segments.push(current_segment.clone());
                                     current_segment.clear();
@@ -172,25 +138,100 @@ impl IntoEngineRows for &str {
                     },
                 );
 
-                let cells = if !segments.is_empty() {
-                    segments
-                        .into_iter()
-                        .enumerate()
-                        .map(|(index, val)| EngineCell::new(Cell::from(val.as_str()), index, row))
-                        .collect::<Vec<EngineCell>>()
-                } else {
-                    Vec::new()
-                };
+                if !segments.is_empty() && !segments.last().unwrap().is_empty() {
+                    segments.push(segments.last().unwrap().clone());
+                }
+
+                let mut cells = Vec::new();
+                let mut index = 0;
+
+                for segment in segments {
+                    if segment.chars().all(char::is_numeric) {
+                        for _ in segment.chars() {
+                            cells.push(EngineCell::new(Cell::from(segment.as_str()), index, row));
+                            index += 1;
+                        }
+                    } else {
+                        cells.push(EngineCell::new(Cell::from(segment.as_str()), index, row));
+                        index += 1;
+                    }
+                }
+
                 EngineRow::new(cells)
             })
-            .collect::<Vec<EngineRow>>();
-
-        rows
+            .collect::<Vec<EngineRow>>()
     }
 }
 
 fn main() {
-    println!("Hello, world!");
+    let input = include_str!("assets/day3/input");
+
+    let engine_rows = input.into_engine_rows();
+
+    let orphaned_numbers = engine_rows
+        .iter()
+        .map(|row| row.cells.clone())
+        .flatten()
+        .filter(|cell| {
+            let own_row = engine_rows.get(cell.row).unwrap().clone();
+            let upper_row = if cell.row > 0 {
+                Some(engine_rows.get(cell.row - 1).unwrap().clone())
+            } else {
+                None
+            };
+
+            let lower_row = if cell.row < engine_rows.len() - 1 {
+                Some(engine_rows.get(cell.row + 1).unwrap().clone())
+            } else {
+                None
+            };
+
+            cell.is_orphan(own_row, upper_row, lower_row)
+        })
+        .map(|cell| match cell.value {
+            Cell::Value(v) => v,
+            _ => unreachable!("should be value"),
+        })
+        .fold(std::collections::HashMap::new(), |mut acc, num| {
+            *acc.entry(num).or_insert(0) += 1;
+            acc
+        })
+        .into_iter()
+        .filter(|(num, count)| *count == num.to_string().len())
+        .map(|(num, _)| num)
+        .collect::<Vec<u16>>();
+
+    let cell_numbers = engine_rows
+        .iter()
+        .map(|row| row.cells.clone())
+        .flatten()
+        .filter(|cell| match cell.value {
+            Cell::Value(_) => true,
+            _ => false,
+        })
+        .map(|cell| match cell.value {
+            Cell::Value(v) => v,
+            _ => unreachable!("should be value"),
+        })
+        .collect::<Vec<u16>>();
+
+    let non_orphaned_numbers = cell_numbers
+        .iter()
+        .filter(|num| !orphaned_numbers.contains(num))
+        .collect::<Vec<&u16>>();
+
+    println!("non orphaned numbers: {:?}", non_orphaned_numbers);
+
+    // remove duplicates
+    let sum: u32 = non_orphaned_numbers.iter().map(|num| **num)
+        .collect::<std::collections::HashSet<u16>>()
+        .into_iter()
+        .map(|num| num as u32)
+        .sum();
+
+    println!("sum: {}", sum);
+
+
 }
 
 #[cfg(test)]
@@ -220,11 +261,26 @@ mod tests {
 
         let cell = Cell::from("@");
         assert_eq!(cell, Cell::Symbol);
+
+        let cell = Cell::from("=");
+        assert_eq!(cell, Cell::Symbol);
+
+        let cell = Cell::from("&");
+        assert_eq!(cell, Cell::Symbol);
+
+        let cell = Cell::from("$");
+        assert_eq!(cell, Cell::Symbol);
+
+        let cell = Cell::from("+");
+        assert_eq!(cell, Cell::Symbol);
+
+        let cell = Cell::from("-");
+        assert_eq!(cell, Cell::Symbol);
     }
 
     #[test]
     fn test_parsing_rows() {
-        let rows = "...123......$34.\n12..76........!.";
+        let rows = "...123......#34.\n12..76........!.";
 
         let engine_rows = rows.into_engine_rows();
 
@@ -265,5 +321,74 @@ mod tests {
         assert_eq!(second_row.cells.get(11).unwrap().value, Cell::Empty);
         assert_eq!(second_row.cells.get(12).unwrap().value, Cell::Symbol);
         assert_eq!(second_row.cells.get(13).unwrap().value, Cell::Empty);
+    }
+
+    #[test]
+    fn it_sums_correctly() {
+        let input = include_str!("assets/day3/input_test");
+
+        let engine_rows = input.into_engine_rows();
+    
+        let orphaned_numbers = engine_rows
+            .iter()
+            .map(|row| row.cells.clone())
+            .flatten()
+            .filter(|cell| {
+                let own_row = engine_rows.get(cell.row).unwrap().clone();
+                let upper_row = if cell.row > 0 {
+                    Some(engine_rows.get(cell.row - 1).unwrap().clone())
+                } else {
+                    None
+                };
+    
+                let lower_row = if cell.row < engine_rows.len() - 1 {
+                    Some(engine_rows.get(cell.row + 1).unwrap().clone())
+                } else {
+                    None
+                };
+    
+                cell.is_orphan(own_row, upper_row, lower_row)
+            })
+            .map(|cell| match cell.value {
+                Cell::Value(v) => v,
+                _ => unreachable!("should be value"),
+            })
+            .fold(std::collections::HashMap::new(), |mut acc, num| {
+                *acc.entry(num).or_insert(0) += 1;
+                acc
+            })
+            .into_iter()
+            .filter(|(num, count)| *count == num.to_string().len())
+            .map(|(num, _)| num)
+            .collect::<Vec<u16>>();
+    
+        let cell_numbers = engine_rows
+            .iter()
+            .map(|row| row.cells.clone())
+            .flatten()
+            .filter(|cell| match cell.value {
+                Cell::Value(_) => true,
+                _ => false,
+            })
+            .map(|cell| match cell.value {
+                Cell::Value(v) => v,
+                _ => unreachable!("should be value"),
+            })
+            .collect::<Vec<u16>>();
+    
+        let non_orphaned_numbers = cell_numbers
+            .iter()
+            .filter(|num| !orphaned_numbers.contains(num))
+            .collect::<Vec<&u16>>();
+    
+    
+        // remove duplicates with set
+        let sum: u32 = non_orphaned_numbers.iter().map(|num| **num)
+            .collect::<std::collections::HashSet<u16>>()
+            .into_iter()
+            .map(|num| num as u32)
+            .sum();
+
+        assert_eq!(sum, 4361);
     }
 }

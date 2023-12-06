@@ -86,7 +86,7 @@ impl From<&str> for Game {
 }
 
 fn solve(input: &str) -> u64 {
-    let games: Vec<_> = input.split("\n").map(|s| Game::from(s)).collect();
+    let games: Vec<_> = input.lines().map(|s| Game::from(s)).collect();
     games
         .iter()
         .filter(|game| {
@@ -97,7 +97,7 @@ fn solve(input: &str) -> u64 {
 }
 
 fn solve_part2(input: &str) -> u64 {
-    let games: Vec<_> = input.split("\n").map(|s| Game::from(s)).collect();
+    let games: Vec<_> = input.lines().map(|s| Game::from(s)).collect();
 
     games.iter().map(|game| game.game_power()).sum::<u64>()
 }
