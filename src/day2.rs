@@ -31,9 +31,9 @@ impl GameSet {
 
     fn new(red: Option<u64>, blue: Option<u64>, green: Option<u64>) -> GameSet {
         GameSet {
-            red: red,
-            blue: blue,
-            green: green,
+            red,
+            blue,
+            green,
         }
     }
 
@@ -48,8 +48,8 @@ impl GameSet {
 
 impl From<&str> for GameSet {
     fn from(s: &str) -> GameSet {
-        let colors: Vec<(String, u64)> = s.split(",").map(|s| {
-            let parts: Vec<_> = s.split(" ").filter(|part| part.len() > 0).collect();
+        let colors: Vec<(String, u64)> = s.split(',').map(|s| {
+            let parts: Vec<_> = s.split(' ').filter(|part| !part.is_empty()).collect();
             let color = parts.last().expect("invalid format").to_string();
             let value: u64 = parts
                 .first()
@@ -69,24 +69,24 @@ impl From<&str> for GameSet {
 impl From<&str> for Game {
     fn from(s: &str) -> Game {
         let id = s
-            .split(":")
+            .split(':')
             .next()
             .expect("invalid format")
-            .split(" ")
+            .split(' ')
             .nth(1)
             .unwrap()
             .parse::<u64>()
             .unwrap();
 
-        let raw_sets = s.split(":").nth(1).expect("invalid format");
-        let sets: Vec<_> = raw_sets.split(";").map(|s| GameSet::from(s)).collect();
+        let raw_sets = s.split(':').nth(1).expect("invalid format");
+        let sets: Vec<_> = raw_sets.split(';').map(GameSet::from).collect();
 
         Game { id, sets }
     }
 }
 
-fn solve(input: &str) -> u64 {
-    let games: Vec<_> = input.lines().map(|s| Game::from(s)).collect();
+fn solve_part1(input: &str) -> u64 {
+    let games: Vec<_> = input.lines().map(Game::from).collect();
     games
         .iter()
         .filter(|game| {
@@ -97,14 +97,14 @@ fn solve(input: &str) -> u64 {
 }
 
 fn solve_part2(input: &str) -> u64 {
-    let games: Vec<_> = input.lines().map(|s| Game::from(s)).collect();
+    let games: Vec<_> = input.lines().map(Game::from).collect();
 
     games.iter().map(|game| game.game_power()).sum::<u64>()
 }
 
 fn main() {
     let input = include_str!("assets/day2/input");
-    let result = solve(input);
+    let result = solve_part1(input);
     println!("Sum of valid ids: {}", result);
 
     let result = solve_part2(input);
@@ -114,13 +114,13 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use crate::{solve, solve_part2};
+    use crate::{solve_part1, solve_part2};
 
 
     #[test]
     fn it_works() {
         let input = include_str!("assets/day2/input_test");
-        let result = solve(input);
+        let result = solve_part1(input);
         assert_eq!(result, 8);
     }
 
