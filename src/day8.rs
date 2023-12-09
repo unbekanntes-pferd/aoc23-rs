@@ -20,7 +20,6 @@ fn main() {
 
     let result = solve_part1(input);
     println!("Part 1: {}", result);
-
 }
 
 fn solve_part1(input: &str) -> usize {
@@ -42,7 +41,12 @@ fn solve_part1(input: &str) -> usize {
             let parts = s.split('=').collect::<Vec<_>>();
             let location = parts.first().unwrap().trim().to_string();
 
-            let opt_parts = parts.get(1).unwrap().split(',').map(|s| s.trim()).collect::<Vec<_>>();
+            let opt_parts = parts
+                .get(1)
+                .unwrap()
+                .split(',')
+                .map(|s| s.trim())
+                .collect::<Vec<_>>();
             let opt_parts = opt_parts
                 .iter()
                 .map(|s| s.trim_start_matches('(').trim_end_matches(')'))
