@@ -2,7 +2,7 @@ use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::io::Write;
 
-#[derive(PartialEq, PartialOrd, Eq, Clone, Hash, Debug)]
+#[derive(PartialEq, PartialOrd, Ord, Eq, Clone, Hash, Debug)]
 enum Card {
     Joker,
     Two,
@@ -17,32 +17,6 @@ enum Card {
     Queen,
     King,
     Ace,
-}
-
-impl From<&Card> for u64 {
-    fn from(card: &Card) -> Self {
-        match card {
-            Card::Joker => 1,
-            Card::Two => 2,
-            Card::Three => 3,
-            Card::Four => 4,
-            Card::Five => 5,
-            Card::Six => 6,
-            Card::Seven => 7,
-            Card::Eight => 8,
-            Card::Nine => 9,
-            Card::Ten => 10,
-            Card::Queen => 12,
-            Card::King => 13,
-            Card::Ace => 14,
-        }
-    }
-}
-
-impl Ord for Card {
-    fn cmp(&self, other: &Self) -> Ordering {
-        u64::from(self).cmp(&u64::from(other))
-    }
 }
 
 impl From<char> for Card {
@@ -172,8 +146,7 @@ impl IntoHand for [Card; 5] {
         ];
 
         match count_jokers {
-            5 => return Hand::FiveOfAKind(cards, bet),
-            4 => return Hand::FiveOfAKind(cards, bet),
+            5 | 4 => return Hand::FiveOfAKind(cards, bet),
             3 => {
                 if count_pairs == 1 {
                     return Hand::FiveOfAKind(cards, bet);
@@ -253,17 +226,17 @@ fn main() {
         .lines()
         .map(|line| {
             let cards = line
-                .split(" ")
+                .split(' ')
                 .filter(|s| !s.is_empty())
                 .collect::<Vec<_>>()
-                .get(0)
+                .first()
                 .unwrap()
                 .chars()
-                .map(|c| Card::from(c))
+                .map(Card::from)
                 .collect::<Vec<_>>();
 
             let bet = line
-                .split(" ")
+                .split(' ')
                 .filter(|s| !s.is_empty())
                 .collect::<Vec<_>>()
                 .get(1)
@@ -299,18 +272,18 @@ mod tests {
         let hands = input
             .lines()
             .map(|line| {
-                let mut cards = line
-                    .split(" ")
+                let cards = line
+                    .split(' ')
                     .filter(|s| !s.is_empty())
                     .collect::<Vec<_>>()
-                    .get(0)
+                    .first()
                     .unwrap()
                     .chars()
-                    .map(|c| Card::from(c))
+                    .map(Card::from)
                     .collect::<Vec<_>>();
 
                 let bet = line
-                    .split(" ")
+                    .split(' ')
                     .filter(|s| !s.is_empty())
                     .collect::<Vec<_>>()
                     .get(1)
@@ -341,18 +314,18 @@ mod tests {
         let hands = input
             .lines()
             .map(|line| {
-                let mut cards = line
-                    .split(" ")
+                let cards = line
+                    .split(' ')
                     .filter(|s| !s.is_empty())
                     .collect::<Vec<_>>()
-                    .get(0)
+                    .first()
                     .unwrap()
                     .chars()
-                    .map(|c| Card::from(c))
+                    .map(Card::from)
                     .collect::<Vec<_>>();
 
                 let bet = line
-                    .split(" ")
+                    .split(' ')
                     .filter(|s| !s.is_empty())
                     .collect::<Vec<_>>()
                     .get(1)
