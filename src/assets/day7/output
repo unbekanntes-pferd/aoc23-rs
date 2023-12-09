@@ -1,0 +1,5 @@
+OnePair([Three, Two, Ten, Three, King], 765)
+TwoPairs([King, King, Six, Seven, Seven], 28)
+FourOfAKind([Ten, Five, Five, Joker, Five], 684)
+FourOfAKind([Queen, Queen, Queen, Joker, Ace], 483)
+FourOfAKind([King, Ten, Joker, Joker, Ten], 220)

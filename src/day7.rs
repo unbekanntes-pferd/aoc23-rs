@@ -1,8 +1,10 @@
 use std::cmp::Ordering;
 use std::collections::HashMap;
+use std::io::Write;
 
 #[derive(PartialEq, PartialOrd, Eq, Clone, Hash, Debug)]
 enum Card {
+    Joker,
     Two,
     Three,
     Four,
@@ -12,7 +14,6 @@ enum Card {
     Eight,
     Nine,
     Ten,
-    Knight,
     Queen,
     King,
     Ace,
@@ -21,6 +22,7 @@ enum Card {
 impl From<&Card> for u64 {
     fn from(card: &Card) -> Self {
         match card {
+            Card::Joker => 1,
             Card::Two => 2,
             Card::Three => 3,
             Card::Four => 4,
@@ -30,7 +32,6 @@ impl From<&Card> for u64 {
             Card::Eight => 8,
             Card::Nine => 9,
             Card::Ten => 10,
-            Card::Knight => 11,
             Card::Queen => 12,
             Card::King => 13,
             Card::Ace => 14,
@@ -57,7 +58,7 @@ impl From<char> for Card {
             '8' => Self::Eight,
             '9' => Self::Nine,
             'T' => Self::Ten,
-            'J' => Self::Knight,
+            'J' => Self::Joker,
             'Q' => Self::Queen,
             'K' => Self::King,
             _ => panic!("Invalid card"),
@@ -142,12 +143,17 @@ trait IntoHand {
 
 impl IntoHand for [Card; 5] {
     fn into_hand(self, bet: u64) -> Hand {
-        let mut cards = self.to_vec();
+        let cards = self.to_vec();
 
         assert_eq!(cards.len(), 5);
 
+        let count_jokers = cards.iter().filter(|card| **card == Card::Joker).count();
+
         let mut counts = HashMap::new();
         for card in cards.iter() {
+            if card == &Card::Joker {
+                continue;
+            }
             let count = counts.entry(card).or_insert(0);
             *count += 1;
         }
@@ -165,6 +171,41 @@ impl IntoHand for [Card; 5] {
             cards[4].clone(),
         ];
 
+        match count_jokers {
+            5 => return Hand::FiveOfAKind(cards, bet),
+            4 => return Hand::FiveOfAKind(cards, bet),
+            3 => {
+                if count_pairs == 1 {
+                    return Hand::FiveOfAKind(cards, bet);
+                } else {
+                    return Hand::FourOfAKind(cards, bet);
+                }
+            }
+            2 => {
+                if count_triples == 1 {
+                    return Hand::FiveOfAKind(cards, bet);
+                } else if count_pairs == 1 {
+                    return Hand::FourOfAKind(cards, bet);
+                } else {
+                    return Hand::ThreeOfAKind(cards, bet);
+                }
+            }
+            1 => {
+                if count_quads == 1 {
+                    return Hand::FiveOfAKind(cards, bet);
+                } else if count_triples == 1 {
+                    return Hand::FourOfAKind(cards, bet);
+                } else if count_pairs == 2 {
+                    return Hand::FullHouse(cards, bet);
+                } else if count_pairs == 1 {
+                    return Hand::ThreeOfAKind(cards, bet);
+                } else {
+                    return Hand::OnePair(cards, bet);
+                }
+            }
+            _ => {}
+        }
+
         match (count_pairs, count_triples, count_quads, count_quints) {
             (0, 0, 0, 0) => Hand::HighCard(cards, bet),
             (1, 0, 0, 0) => Hand::OnePair(cards, bet),
@@ -174,18 +215,20 @@ impl IntoHand for [Card; 5] {
             (0, 0, 1, 0) => Hand::FourOfAKind(cards, bet),
             (0, 0, 0, 1) => Hand::FiveOfAKind(cards, bet),
             _ => {
-                eprintln!("{:?}", counts);
-                eprintln!("{:?}", cards);
                 panic!("Invalid hand")
             }
         }
     }
 }
 
-fn solve_part1(mut hands: Vec<Hand>) -> u64 {
+fn solve(mut hands: Vec<Hand>) -> u64 {
     hands.sort();
 
-    eprintln!("{:?}", hands);
+    let file = std::fs::File::create("src/assets/day7/output").unwrap();
+    let mut file = std::io::BufWriter::new(file);
+    for hand in &hands {
+        file.write_all(format!("{:?}\n", hand).as_bytes()).unwrap();
+    }
 
     hands.iter().enumerate().fold(0, |acc, (index, hand)| {
         let index = index + 1;
@@ -203,17 +246,13 @@ fn solve_part1(mut hands: Vec<Hand>) -> u64 {
     })
 }
 
-fn solve_part2() -> u64 {
-    todo!()
-}
-
 fn main() {
     let input = include_str!("assets/day7/input");
 
     let hands = input
         .lines()
         .map(|line| {
-            let mut cards = line
+            let cards = line
                 .split(" ")
                 .filter(|s| !s.is_empty())
                 .collect::<Vec<_>>()
@@ -244,10 +283,7 @@ fn main() {
         })
         .collect::<Vec<_>>();
 
-    let result = solve_part1(hands);
-    println!("Result: {}", result);
-
-    let result = solve_part2();
+    let result = solve(hands);
     println!("Result: {}", result);
 }
 
@@ -256,6 +292,7 @@ mod tests {
     use super::*;
 
     #[test]
+    #[ignore = "No longer works after part 1"]
     fn test_part1() {
         let input = include_str!("assets/day7/input_test");
 
@@ -293,10 +330,230 @@ mod tests {
             })
             .collect::<Vec<_>>();
 
-        let result = solve_part1(hands);
+        let result = solve(hands);
         assert_eq!(result, 6440);
     }
 
     #[test]
-    fn test_part2() {}
+    fn test_part2() {
+        let input = include_str!("assets/day7/input_test");
+
+        let hands = input
+            .lines()
+            .map(|line| {
+                let mut cards = line
+                    .split(" ")
+                    .filter(|s| !s.is_empty())
+                    .collect::<Vec<_>>()
+                    .get(0)
+                    .unwrap()
+                    .chars()
+                    .map(|c| Card::from(c))
+                    .collect::<Vec<_>>();
+
+                let bet = line
+                    .split(" ")
+                    .filter(|s| !s.is_empty())
+                    .collect::<Vec<_>>()
+                    .get(1)
+                    .unwrap()
+                    .parse::<u64>()
+                    .unwrap();
+
+                let cards = [
+                    cards[0].clone(),
+                    cards[1].clone(),
+                    cards[2].clone(),
+                    cards[3].clone(),
+                    cards[4].clone(),
+                ];
+
+                cards.into_hand(bet)
+            })
+            .collect::<Vec<_>>();
+
+        let result = solve(hands);
+
+        assert_eq!(result, 5905);
+    }
+
+    #[test]
+    fn it_correctly_uses_5_jokers() {
+        let cards = [
+            Card::Joker,
+            Card::Joker,
+            Card::Joker,
+            Card::Joker,
+            Card::Joker,
+        ];
+
+        let hand = cards.clone().into_hand(1);
+
+        assert_eq!(hand, Hand::FiveOfAKind(cards, 1));
+    }
+
+    #[test]
+    fn it_correctly_uses_4_jokers() {
+        let cards = [
+            Card::Joker,
+            Card::Joker,
+            Card::Joker,
+            Card::Joker,
+            Card::Two,
+        ];
+
+        let hand = cards.clone().into_hand(1);
+
+        assert_eq!(hand, Hand::FiveOfAKind(cards, 1));
+    }
+
+    #[test]
+    fn it_correctly_uses_3_jokers_with_one_pair() {
+        let cards = [
+            Card::Joker,
+            Card::Joker,
+            Card::Joker,
+            Card::Two,
+            Card::Two,
+        ];
+
+        let hand = cards.clone().into_hand(1);
+
+        assert_eq!(hand, Hand::FiveOfAKind(cards, 1));
+    }
+
+    #[test]
+    fn it_correctly_uses_3_jokers_with_no_pair() {
+        let cards = [
+            Card::Joker,
+            Card::Joker,
+            Card::Joker,
+            Card::Two,
+            Card::Three,
+        ];
+
+        let hand = cards.clone().into_hand(1);
+
+        assert_eq!(hand, Hand::FourOfAKind(cards, 1));
+    }
+
+    #[test]
+    fn it_correctly_uses_2_jokers_with_one_pair() {
+        let cards = [
+            Card::Joker,
+            Card::Joker,
+            Card::Two,
+            Card::Two,
+            Card::Three,
+        ];
+
+        let hand = cards.clone().into_hand(1);
+
+        assert_eq!(hand, Hand::FourOfAKind(cards, 1));
+    }
+
+    #[test]
+    fn it_correctly_uses_2_jokers_with_one_triple() {
+        let cards = [
+            Card::Joker,
+            Card::Joker,
+            Card::Two,
+            Card::Two,
+            Card::Two,
+        ];
+
+        let hand = cards.clone().into_hand(1);
+
+        assert_eq!(hand, Hand::FiveOfAKind(cards, 1));
+    }
+
+    #[test]
+    fn it_correctly_uses_2_jokers_with_no_pair() {
+        let cards = [
+            Card::Joker,
+            Card::Joker,
+            Card::Two,
+            Card::Three,
+            Card::Four,
+        ];
+
+        let hand = cards.clone().into_hand(1);
+
+        assert_eq!(hand, Hand::ThreeOfAKind(cards, 1));
+    }
+
+    #[test]
+    fn it_correctly_uses_1_joker_with_one_pair() {
+        let cards = [
+            Card::Joker,
+            Card::Two,
+            Card::Two,
+            Card::Three,
+            Card::Four,
+        ];
+
+        let hand = cards.clone().into_hand(1);
+
+        assert_eq!(hand, Hand::ThreeOfAKind(cards, 1));
+    }
+
+    #[test]
+    fn it_correctly_uses_1_joker_with_two_pairs() {
+        let cards = [
+            Card::Joker,
+            Card::Two,
+            Card::Two,
+            Card::Three,
+            Card::Three,
+        ];
+
+        let hand = cards.clone().into_hand(1);
+
+        assert_eq!(hand, Hand::FullHouse(cards, 1));
+    }
+
+    #[test]
+    fn it_correctly_uses_1_joker_with_one_triple() {
+        let cards = [
+            Card::Joker,
+            Card::Two,
+            Card::Two,
+            Card::Two,
+            Card::Three,
+        ];
+
+        let hand = cards.clone().into_hand(1);
+
+        assert_eq!(hand, Hand::FourOfAKind(cards, 1));
+    }
+
+    #[test]
+    fn it_correctly_uses_1_joker_with_one_quad() {
+        let cards = [
+            Card::Joker,
+            Card::Two,
+            Card::Two,
+            Card::Two,
+            Card::Two,
+        ];
+
+        let hand = cards.clone().into_hand(1);
+
+        assert_eq!(hand, Hand::FiveOfAKind(cards, 1));
+    }
+
+    #[test]
+    fn it_correctly_uses_1_joker_with_no_pair() {
+        let cards = [
+            Card::Joker,
+            Card::Two,
+            Card::Three,
+            Card::Four,
+            Card::Five,
+        ];
+
+        let hand = cards.clone().into_hand(1);
+
+        assert_eq!(hand, Hand::OnePair(cards, 1));
+    }
 }
