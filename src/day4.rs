@@ -137,7 +137,7 @@ impl IntoGame for &str {
 
 #[cfg(test)]
 mod tests {
-    use crate::{IntoGame, process_card};
+    use crate::{process_card, IntoGame};
 
     #[test]
     fn it_parses_correctly_to_game() {
@@ -193,7 +193,6 @@ mod tests {
             }
 
             points += card_points;
-
         }
 
         assert_eq!(points, 13);
