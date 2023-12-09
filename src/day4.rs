@@ -112,16 +112,16 @@ impl IntoGame for &str {
                 let cards: Vec<_> = line.split("|").collect();
 
                 let winners = cards
-                    .get(0)
+                    .first()
                     .unwrap()
-                    .split(" ")
+                    .split(' ')
                     .filter(|num| !num.is_empty() && num.chars().all(|c| c.is_numeric()))
                     .map(|card| card.parse::<u16>().unwrap())
                     .collect::<Vec<_>>();
                 let own = cards
                     .get(1)
                     .unwrap()
-                    .split(" ")
+                    .split(' ')
                     .filter(|num| !num.is_empty())
                     .map(|card| card.parse::<u16>().unwrap())
                     .collect::<Vec<_>>();
@@ -154,8 +154,8 @@ mod tests {
         assert_eq!(game.winners.len(), 6);
         assert_eq!(game.own.len(), 6);
 
-        assert_eq!(game.winners.get(0).unwrap().len(), 5);
-        assert_eq!(game.own.get(0).unwrap().len(), 8);
+        assert_eq!(game.winners.first().unwrap().len(), 5);
+        assert_eq!(game.own.first().unwrap().len(), 8);
     }
 
     #[test]
@@ -182,8 +182,6 @@ mod tests {
                 .filter(|num| card.contains(num))
                 .count();
 
-            println!("winning numbers: {}", count_winning_numbers);
-
             let mut card_points = 0;
 
             if count_winning_numbers > 0 {
@@ -196,7 +194,6 @@ mod tests {
 
             points += card_points;
 
-            println!("Card {} wins {} points", card_index, card_points);
         }
 
         assert_eq!(points, 13);
