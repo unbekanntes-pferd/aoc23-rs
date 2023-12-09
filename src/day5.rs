@@ -1,23 +1,38 @@
 use std::ops::Range;
 
 fn main() {
-    // solve_part_1();
-
-    solve_part_2();
+    let input = include_str!("assets/day5/input");
+    // let (seeds, conversion_maps) = solve_part_1(input);
+    let (seeds, conversion_maps) = solve_part_2(input);
+    let result = calculate_location(&seeds, &conversion_maps);
+    println!("Result: {}", result);
 }
 
-fn solve_part_2() {
-    let input = include_str!("assets/day5/input");
+fn calculate_location(seeds: &[Seed], conversion_maps: &[Vec<ConversionMap>]) -> usize {
+    let locations = seeds
+        .iter()
+        .map(|seed| seed.convert_to(&conversion_maps[0]))
+        .map(|soil| soil.convert_to(&conversion_maps[1]))
+        .map(|fertilizer| fertilizer.convert_to(&conversion_maps[2]))
+        .map(|water| water.convert_to(&conversion_maps[3]))
+        .map(|light| light.convert_to(&conversion_maps[4]))
+        .map(|temperature| temperature.convert_to(&conversion_maps[5]))
+        .map(|humidity| humidity.convert_to(&conversion_maps[6]))
+        .collect::<Vec<_>>();
 
+    locations.iter().map(|location| location.0).min().unwrap()
+}
+
+fn solve_part_2(input: &str) -> (Vec<Seed>, Vec<Vec<ConversionMap>>) {
     let input = input
         .split("\n\n")
         .map(|content| {
-            let content: Vec<_> = content.split(":").filter(|s| !s.is_empty()).collect();
+            let content: Vec<_> = content.split(':').filter(|s| !s.is_empty()).collect();
             content
         })
         .collect::<Vec<_>>();
 
-    let ranged_seeds = input.get(0).unwrap().get(1).unwrap().into_ranged_seeds();
+    let ranged_seeds = input.first().unwrap().get(1).unwrap().to_ranged_seeds();
 
     let seeds = ranged_seeds
         .ranges
@@ -29,219 +44,62 @@ fn solve_part_2() {
             acc
         });
 
-    let seed_to_soil = input
-        .get(1)
-        .unwrap()
-        .get(1)
-        .unwrap()
-        .trim_start_matches("\n")
-        .split("\n")
-        .filter(|s| !s.is_empty())
-        .map(|s| s.into_conversion_map())
+    let conversion_maps = (1..8)
+        .map(|i| {
+            let conversion_map = input
+                .get(i)
+                .unwrap()
+                .get(1)
+                .unwrap()
+                .trim_start_matches('\n')
+                .split('\n')
+                .filter(|s| !s.is_empty())
+                .map(|s| s.into_conversion_map())
+                .collect::<Vec<_>>();
+            conversion_map
+        })
         .collect::<Vec<_>>();
 
-    let soil_to_fertilizer = input
-        .get(2)
-        .unwrap()
-        .get(1)
-        .unwrap()
-        .trim_start_matches("\n")
-        .split("\n")
-        .filter(|s| !s.is_empty())
-        .map(|s| s.into_conversion_map())
-        .collect::<Vec<_>>();
-
-    let fertilizer_to_water = input
-        .get(3)
-        .unwrap()
-        .get(1)
-        .unwrap()
-        .trim_start_matches("\n")
-        .split("\n")
-        .filter(|s| !s.is_empty())
-        .map(|s| s.into_conversion_map())
-        .collect::<Vec<_>>();
-
-    let water_to_light = input
-        .get(4)
-        .unwrap()
-        .get(1)
-        .unwrap()
-        .trim_start_matches("\n")
-        .split("\n")
-        .filter(|s| !s.is_empty())
-        .map(|s| s.into_conversion_map())
-        .collect::<Vec<_>>();
-
-    let light_to_temperature = input
-        .get(5)
-        .unwrap()
-        .get(1)
-        .unwrap()
-        .trim_start_matches("\n")
-        .split("\n")
-        .filter(|s| !s.is_empty())
-        .map(|s| s.into_conversion_map())
-        .collect::<Vec<_>>();
-
-    let temperature_to_humidity = input
-        .get(6)
-        .unwrap()
-        .get(1)
-        .unwrap()
-        .trim_start_matches("\n")
-        .split("\n")
-        .filter(|s| !s.is_empty())
-        .map(|s| s.into_conversion_map())
-        .collect::<Vec<_>>();
-
-    let humidity_to_location = input
-        .get(7)
-        .unwrap()
-        .get(1)
-        .unwrap()
-        .trim_start_matches("\n")
-        .split("\n")
-        .filter(|s| !s.is_empty())
-        .map(|s| s.into_conversion_map())
-        .collect::<Vec<_>>();
-
-    let soils = seeds
-        .iter()
-        .map(|seed| seed.convert_to(&seed_to_soil))
-        .collect::<Vec<_>>();
-
-    let locations = soils
-        .iter()
-        .map(|soil| soil.convert_to(&soil_to_fertilizer))
-        .map(|fertilizer| fertilizer.convert_to(&fertilizer_to_water))
-        .map(|water| water.convert_to(&water_to_light))
-        .map(|light| light.convert_to(&light_to_temperature))
-        .map(|temperature| temperature.convert_to(&temperature_to_humidity))
-        .map(|humidity| humidity.convert_to(&humidity_to_location))
-        .collect::<Vec<_>>();
-
-    let min_location = locations.iter().map(|location| location.0).min().unwrap();
-
-    println!("min location: {}", min_location);
+    (seeds, conversion_maps)
 }
 
-fn solve_part_1() {
-    let input = include_str!("assets/day5/input");
-
+#[allow(dead_code)]
+fn solve_part_1(input: &str) -> (Vec<Seed>, Vec<Vec<ConversionMap>>) {
     let input = input
         .split("\n\n")
         .map(|content| {
-            let content: Vec<_> = content.split(":").filter(|s| !s.is_empty()).collect();
+            let content: Vec<_> = content.split(':').filter(|s| !s.is_empty()).collect();
             content
         })
         .collect::<Vec<_>>();
 
     let seeds = input
-        .get(0)
+        .first()
         .unwrap()
         .get(1)
         .unwrap()
-        .split(" ")
+        .split(' ')
         .filter(|s| !s.is_empty())
         .map(|s| Seed(s.parse::<usize>().unwrap()))
         .collect::<Vec<_>>();
 
-    let seed_to_soil = input
-        .get(1)
-        .unwrap()
-        .get(1)
-        .unwrap()
-        .trim_start_matches("\n")
-        .split("\n")
-        .filter(|s| !s.is_empty())
-        .map(|s| s.into_conversion_map())
+    let conversion_maps = (1..8)
+        .map(|i| {
+            let conversion_map = input
+                .get(i)
+                .unwrap()
+                .get(1)
+                .unwrap()
+                .trim_start_matches('\n')
+                .split('\n')
+                .filter(|s| !s.is_empty())
+                .map(|s| s.into_conversion_map())
+                .collect::<Vec<_>>();
+            conversion_map
+        })
         .collect::<Vec<_>>();
 
-    let soil_to_fertilizer = input
-        .get(2)
-        .unwrap()
-        .get(1)
-        .unwrap()
-        .trim_start_matches("\n")
-        .split("\n")
-        .filter(|s| !s.is_empty())
-        .map(|s| s.into_conversion_map())
-        .collect::<Vec<_>>();
-
-    let fertilizer_to_water = input
-        .get(3)
-        .unwrap()
-        .get(1)
-        .unwrap()
-        .trim_start_matches("\n")
-        .split("\n")
-        .filter(|s| !s.is_empty())
-        .map(|s| s.into_conversion_map())
-        .collect::<Vec<_>>();
-
-    let water_to_light = input
-        .get(4)
-        .unwrap()
-        .get(1)
-        .unwrap()
-        .trim_start_matches("\n")
-        .split("\n")
-        .filter(|s| !s.is_empty())
-        .map(|s| s.into_conversion_map())
-        .collect::<Vec<_>>();
-
-    let light_to_temperature = input
-        .get(5)
-        .unwrap()
-        .get(1)
-        .unwrap()
-        .trim_start_matches("\n")
-        .split("\n")
-        .filter(|s| !s.is_empty())
-        .map(|s| s.into_conversion_map())
-        .collect::<Vec<_>>();
-
-    let temperature_to_humidity = input
-        .get(6)
-        .unwrap()
-        .get(1)
-        .unwrap()
-        .trim_start_matches("\n")
-        .split("\n")
-        .filter(|s| !s.is_empty())
-        .map(|s| s.into_conversion_map())
-        .collect::<Vec<_>>();
-
-    let humidity_to_location = input
-        .get(7)
-        .unwrap()
-        .get(1)
-        .unwrap()
-        .trim_start_matches("\n")
-        .split("\n")
-        .filter(|s| !s.is_empty())
-        .map(|s| s.into_conversion_map())
-        .collect::<Vec<_>>();
-
-    let soils = seeds
-        .iter()
-        .map(|seed| seed.convert_to(&seed_to_soil))
-        .collect::<Vec<_>>();
-
-    let locations = soils
-        .iter()
-        .map(|soil| soil.convert_to(&soil_to_fertilizer))
-        .map(|fertilizer| fertilizer.convert_to(&fertilizer_to_water))
-        .map(|water| water.convert_to(&water_to_light))
-        .map(|light| light.convert_to(&light_to_temperature))
-        .map(|temperature| temperature.convert_to(&temperature_to_humidity))
-        .map(|humidity| humidity.convert_to(&humidity_to_location))
-        .collect::<Vec<_>>();
-
-    let min_location = locations.iter().map(|location| location.0).min().unwrap();
-
-    println!("min location: {}", min_location);
+    (seeds, conversion_maps)
 }
 
 #[derive(Debug)]
@@ -266,11 +124,11 @@ struct RangedSeeds {
 }
 
 trait IntoRangedSeeds {
-    fn into_ranged_seeds(&self) -> RangedSeeds;
+    fn to_ranged_seeds(&self) -> RangedSeeds;
 }
 
 impl IntoRangedSeeds for &str {
-    fn into_ranged_seeds(&self) -> RangedSeeds {
+    fn to_ranged_seeds(&self) -> RangedSeeds {
         let nums = self
             .split(" ")
             .filter(|s| !s.is_empty())
@@ -392,7 +250,7 @@ impl IntoConversionMap for &str {
     fn into_conversion_map(&self) -> ConversionMap {
         let nums: Vec<_> = self
             .trim()
-            .split(" ")
+            .split(' ')
             .filter(|s| !s.is_empty())
             .map(|s| s.parse::<usize>().unwrap())
             .collect();
@@ -413,123 +271,14 @@ impl IntoConversionMap for &str {
 
 #[cfg(test)]
 mod tests {
-    use crate::{ConvertTo, IntoConversionMap, IntoRangedSeeds, Seed};
+    use crate::{solve_part_1, calculate_location, solve_part_2};
 
     #[test]
     fn it_works() {
         let input = include_str!("assets/day5/input_test");
 
-        let input = input
-            .split("\n\n")
-            .map(|content| {
-                let content: Vec<_> = content.split(":").filter(|s| !s.is_empty()).collect();
-                content
-            })
-            .collect::<Vec<_>>();
-
-        let seeds = input
-            .get(0)
-            .unwrap()
-            .get(1)
-            .unwrap()
-            .split(" ")
-            .filter(|s| !s.is_empty())
-            .map(|s| Seed(s.parse::<usize>().unwrap()))
-            .collect::<Vec<_>>();
-
-        let seed_to_soil = input
-            .get(1)
-            .unwrap()
-            .get(1)
-            .unwrap()
-            .trim_start_matches("\n")
-            .split("\n")
-            .filter(|s| !s.is_empty())
-            .map(|s| s.into_conversion_map())
-            .collect::<Vec<_>>();
-
-        let soil_to_fertilizer = input
-            .get(2)
-            .unwrap()
-            .get(1)
-            .unwrap()
-            .trim_start_matches("\n")
-            .split("\n")
-            .filter(|s| !s.is_empty())
-            .map(|s| s.into_conversion_map())
-            .collect::<Vec<_>>();
-
-        let fertilizer_to_water = input
-            .get(3)
-            .unwrap()
-            .get(1)
-            .unwrap()
-            .trim_start_matches("\n")
-            .split("\n")
-            .filter(|s| !s.is_empty())
-            .map(|s| s.into_conversion_map())
-            .collect::<Vec<_>>();
-
-        let water_to_light = input
-            .get(4)
-            .unwrap()
-            .get(1)
-            .unwrap()
-            .trim_start_matches("\n")
-            .split("\n")
-            .filter(|s| !s.is_empty())
-            .map(|s| s.into_conversion_map())
-            .collect::<Vec<_>>();
-
-        let light_to_temperature = input
-            .get(5)
-            .unwrap()
-            .get(1)
-            .unwrap()
-            .trim_start_matches("\n")
-            .split("\n")
-            .filter(|s| !s.is_empty())
-            .map(|s| s.into_conversion_map())
-            .collect::<Vec<_>>();
-
-        let temperature_to_humidity = input
-            .get(6)
-            .unwrap()
-            .get(1)
-            .unwrap()
-            .trim_start_matches("\n")
-            .split("\n")
-            .filter(|s| !s.is_empty())
-            .map(|s| s.into_conversion_map())
-            .collect::<Vec<_>>();
-
-        let humidity_to_location = input
-            .get(7)
-            .unwrap()
-            .get(1)
-            .unwrap()
-            .trim_start_matches("\n")
-            .split("\n")
-            .filter(|s| !s.is_empty())
-            .map(|s| s.into_conversion_map())
-            .collect::<Vec<_>>();
-
-        let soils = seeds
-            .iter()
-            .map(|seed| seed.convert_to(&seed_to_soil))
-            .collect::<Vec<_>>();
-
-        let locations = soils
-            .iter()
-            .map(|soil| soil.convert_to(&soil_to_fertilizer))
-            .map(|fertilizer| fertilizer.convert_to(&fertilizer_to_water))
-            .map(|water| water.convert_to(&water_to_light))
-            .map(|light| light.convert_to(&light_to_temperature))
-            .map(|temperature| temperature.convert_to(&temperature_to_humidity))
-            .map(|humidity| humidity.convert_to(&humidity_to_location))
-            .collect::<Vec<_>>();
-
-        let min_location = locations.iter().map(|location| location.0).min().unwrap();
+        let (seeds, conversion_maps) = solve_part_1(input);
+        let min_location = calculate_location(&seeds, &conversion_maps);
 
         assert_eq!(min_location, 35);
     }
@@ -538,122 +287,8 @@ mod tests {
     fn it_still_works() {
         let input = include_str!("assets/day5/input_test");
 
-        let input = input
-            .split("\n\n")
-            .map(|content| {
-                let content: Vec<_> = content.split(":").filter(|s| !s.is_empty()).collect();
-                content
-            })
-            .collect::<Vec<_>>();
-
-        let ranged_seeds = input.get(0).unwrap().get(1).unwrap().into_ranged_seeds();
-
-        let seeds = ranged_seeds
-            .ranges
-            .iter()
-            .fold(Vec::new(), |mut acc, range| {
-                for i in range.clone() {
-                    acc.push(Seed(i));
-                }
-                acc
-            });
-
-        assert_eq!(seeds.len(), 27);
-
-        let seed_to_soil = input
-            .get(1)
-            .unwrap()
-            .get(1)
-            .unwrap()
-            .trim_start_matches("\n")
-            .split("\n")
-            .filter(|s| !s.is_empty())
-            .map(|s| s.into_conversion_map())
-            .collect::<Vec<_>>();
-
-        let soil_to_fertilizer = input
-            .get(2)
-            .unwrap()
-            .get(1)
-            .unwrap()
-            .trim_start_matches("\n")
-            .split("\n")
-            .filter(|s| !s.is_empty())
-            .map(|s| s.into_conversion_map())
-            .collect::<Vec<_>>();
-
-        let fertilizer_to_water = input
-            .get(3)
-            .unwrap()
-            .get(1)
-            .unwrap()
-            .trim_start_matches("\n")
-            .split("\n")
-            .filter(|s| !s.is_empty())
-            .map(|s| s.into_conversion_map())
-            .collect::<Vec<_>>();
-
-        let water_to_light = input
-            .get(4)
-            .unwrap()
-            .get(1)
-            .unwrap()
-            .trim_start_matches("\n")
-            .split("\n")
-            .filter(|s| !s.is_empty())
-            .map(|s| s.into_conversion_map())
-            .collect::<Vec<_>>();
-
-        let light_to_temperature = input
-            .get(5)
-            .unwrap()
-            .get(1)
-            .unwrap()
-            .trim_start_matches("\n")
-            .split("\n")
-            .filter(|s| !s.is_empty())
-            .map(|s| s.into_conversion_map())
-            .collect::<Vec<_>>();
-
-        let temperature_to_humidity = input
-            .get(6)
-            .unwrap()
-            .get(1)
-            .unwrap()
-            .trim_start_matches("\n")
-            .split("\n")
-            .filter(|s| !s.is_empty())
-            .map(|s| s.into_conversion_map())
-            .collect::<Vec<_>>();
-
-        let humidity_to_location = input
-            .get(7)
-            .unwrap()
-            .get(1)
-            .unwrap()
-            .trim_start_matches("\n")
-            .split("\n")
-            .filter(|s| !s.is_empty())
-            .map(|s| s.into_conversion_map())
-            .collect::<Vec<_>>();
-
-        let soils = seeds
-            .iter()
-            .map(|seed| seed.convert_to(&seed_to_soil))
-            .collect::<Vec<_>>();
-
-        let locations = soils
-            .iter()
-            .map(|soil| soil.convert_to(&soil_to_fertilizer))
-            .map(|fertilizer| fertilizer.convert_to(&fertilizer_to_water))
-            .map(|water| water.convert_to(&water_to_light))
-            .map(|light| light.convert_to(&light_to_temperature))
-            .map(|temperature| temperature.convert_to(&temperature_to_humidity))
-            .map(|humidity| humidity.convert_to(&humidity_to_location))
-            .collect::<Vec<_>>();
-
-        let min_location = locations.iter().map(|location| location.0).min().unwrap();
-
+        let (seeds, conversion_maps) = solve_part_2(input);
+        let min_location = crate::calculate_location(&seeds, &conversion_maps);
         assert_eq!(min_location, 46);
     }
 }
