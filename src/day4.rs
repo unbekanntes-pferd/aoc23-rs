@@ -109,7 +109,7 @@ impl IntoGame for &str {
                     return game;
                 }
 
-                let cards: Vec<_> = line.split("|").collect();
+                let cards: Vec<_> = line.split('|').collect();
 
                 let winners = cards
                     .first()
