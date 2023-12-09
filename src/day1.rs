@@ -12,8 +12,7 @@ fn solve(input: &str) -> u64 {
 
 fn parse_input(text: &str) -> Vec<u8> {
     text.lines()
-        .into_iter()
-        .map(|line| parse_number(line))
+        .map(parse_number)
         .collect()
 }
 
@@ -32,14 +31,12 @@ fn parse_number(line: &str) -> u8 {
     let first = parse_first_number(&numeric_words, &numeric_chars);
     let second = parse_last_number(&numeric_words, &numeric_chars);
 
-    let result = format!("{first}{second}")
+    format!("{first}{second}")
         .parse()
-        .expect("chars not numeric");
-
-    result
+        .expect("chars not numeric")
 }
 
-fn parse_first_number(numeric_words: &Vec<NumericWord>, numeric_chars: &Vec<NumericChar>) -> u8 {
+fn parse_first_number(numeric_words: &[NumericWord], numeric_chars: &[NumericChar]) -> u8 {
     match (
         numeric_chars.first().is_some(),
         numeric_words.first().is_some(),
@@ -47,29 +44,29 @@ fn parse_first_number(numeric_words: &Vec<NumericWord>, numeric_chars: &Vec<Nume
         (true, false) => numeric_chars
             .first()
             .expect("no numbers present")
-            .into_number(),
+            .to_number(),
         (false, true) => numeric_words
             .first()
             .expect("no numbers present")
-            .into_number(),
+            .to_number(),
         (true, true) => {
             if numeric_words.first().unwrap().1 < numeric_chars.first().unwrap().1 {
                 numeric_words
                     .first()
                     .expect("no numbers present")
-                    .into_number()
+                    .to_number()
             } else {
                 numeric_chars
                     .first()
                     .expect("no numbers present")
-                    .into_number()
+                    .to_number()
             }
         }
         (false, false) => unreachable!("no numbers should never be present"),
     }
 }
 
-fn parse_last_number(numeric_words: &Vec<NumericWord>, numeric_chars: &Vec<NumericChar>) -> u8 {
+fn parse_last_number(numeric_words: &[NumericWord], numeric_chars: &[NumericChar]) -> u8 {
     match (
         numeric_chars.last().is_some(),
         numeric_words.last().is_some(),
@@ -77,22 +74,22 @@ fn parse_last_number(numeric_words: &Vec<NumericWord>, numeric_chars: &Vec<Numer
         (true, false) => numeric_chars
             .last()
             .expect("no numbers present")
-            .into_number(),
+            .to_number(),
         (false, true) => numeric_words
             .last()
             .expect("no numbers present")
-            .into_number(),
+            .to_number(),
         (true, true) => {
             if numeric_words.last().unwrap().1 > numeric_chars.last().unwrap().1 {
                 numeric_words
                     .last()
                     .expect("no numbers present")
-                    .into_number()
+                    .to_number()
             } else {
                 numeric_chars
                     .last()
                     .expect("no numbers present")
-                    .into_number()
+                    .to_number()
             }
         }
         (false, false) => unreachable!("no numbers should never be present"),
@@ -103,11 +100,11 @@ type NumericWord = (String, usize);
 type NumericChar = (char, usize);
 
 trait IntoNumber {
-    fn into_number(&self) -> u8;
+    fn to_number(&self) -> u8;
 }
 
 impl IntoNumber for NumericChar {
-    fn into_number(&self) -> u8 {
+    fn to_number(&self) -> u8 {
         if !self.0.is_numeric() {
             panic!("invalid char")
         } else {
@@ -117,7 +114,7 @@ impl IntoNumber for NumericChar {
 }
 
 impl IntoNumber for NumericWord {
-    fn into_number(&self) -> u8 {
+    fn to_number(&self) -> u8 {
         match self.0.as_str() {
             "one" => 1,
             "two" => 2,

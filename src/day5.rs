@@ -54,7 +54,7 @@ fn solve_part_2(input: &str) -> (Vec<Seed>, Vec<Vec<ConversionMap>>) {
                 .trim_start_matches('\n')
                 .split('\n')
                 .filter(|s| !s.is_empty())
-                .map(|s| s.into_conversion_map())
+                .map(|s| s.to_conversion_map())
                 .collect::<Vec<_>>();
             conversion_map
         })
@@ -93,7 +93,7 @@ fn solve_part_1(input: &str) -> (Vec<Seed>, Vec<Vec<ConversionMap>>) {
                 .trim_start_matches('\n')
                 .split('\n')
                 .filter(|s| !s.is_empty())
-                .map(|s| s.into_conversion_map())
+                .map(|s| s.to_conversion_map())
                 .collect::<Vec<_>>();
             conversion_map
         })
@@ -130,7 +130,7 @@ trait IntoRangedSeeds {
 impl IntoRangedSeeds for &str {
     fn to_ranged_seeds(&self) -> RangedSeeds {
         let nums = self
-            .split(" ")
+            .split(' ')
             .filter(|s| !s.is_empty())
             .map(|s| s.parse::<usize>().unwrap())
             .collect::<Vec<_>>();
@@ -138,7 +138,7 @@ impl IntoRangedSeeds for &str {
         let ranges = nums
             .chunks(2)
             .map(|chunk| {
-                let start = *chunk.get(0).unwrap();
+                let start = *chunk.first().unwrap();
                 let len = *chunk.get(1).unwrap();
                 start..start + len
             })
@@ -149,7 +149,7 @@ impl IntoRangedSeeds for &str {
 }
 
 impl ConvertTo<Soil> for Seed {
-    fn convert_to(&self, conversion_maps: &Vec<ConversionMap>) -> Soil {
+    fn convert_to(&self, conversion_maps: &[ConversionMap]) -> Soil {
         for conversion_map in conversion_maps {
             if conversion_map.source.contains(&self.0) {
                 let idx = self.0 - conversion_map.source.start;
@@ -161,7 +161,7 @@ impl ConvertTo<Soil> for Seed {
 }
 
 impl ConvertTo<Fertilizer> for Soil {
-    fn convert_to(&self, conversion_maps: &Vec<ConversionMap>) -> Fertilizer {
+    fn convert_to(&self, conversion_maps: &[ConversionMap]) -> Fertilizer {
         for conversion_map in conversion_maps {
             if conversion_map.source.contains(&self.0) {
                 let idx = self.0 - conversion_map.source.start;
@@ -173,7 +173,7 @@ impl ConvertTo<Fertilizer> for Soil {
 }
 
 impl ConvertTo<Water> for Fertilizer {
-    fn convert_to(&self, conversion_maps: &Vec<ConversionMap>) -> Water {
+    fn convert_to(&self, conversion_maps: &[ConversionMap]) -> Water {
         for conversion_map in conversion_maps {
             if conversion_map.source.contains(&self.0) {
                 let idx = self.0 - conversion_map.source.start;
@@ -185,7 +185,7 @@ impl ConvertTo<Water> for Fertilizer {
 }
 
 impl ConvertTo<Light> for Water {
-    fn convert_to(&self, conversion_maps: &Vec<ConversionMap>) -> Light {
+    fn convert_to(&self, conversion_maps: &[ConversionMap]) -> Light {
         for conversion_map in conversion_maps {
             if conversion_map.source.contains(&self.0) {
                 let idx = self.0 - conversion_map.source.start;
@@ -197,7 +197,7 @@ impl ConvertTo<Light> for Water {
 }
 
 impl ConvertTo<Temperature> for Light {
-    fn convert_to(&self, conversion_maps: &Vec<ConversionMap>) -> Temperature {
+    fn convert_to(&self, conversion_maps: &[ConversionMap]) -> Temperature {
         for conversion_map in conversion_maps {
             if conversion_map.source.contains(&self.0) {
                 let idx = self.0 - conversion_map.source.start;
@@ -209,7 +209,7 @@ impl ConvertTo<Temperature> for Light {
 }
 
 impl ConvertTo<Humidity> for Temperature {
-    fn convert_to(&self, conversion_maps: &Vec<ConversionMap>) -> Humidity {
+    fn convert_to(&self, conversion_maps: &[ConversionMap]) -> Humidity {
         for conversion_map in conversion_maps {
             if conversion_map.source.contains(&self.0) {
                 let idx = self.0 - conversion_map.source.start;
@@ -221,7 +221,7 @@ impl ConvertTo<Humidity> for Temperature {
 }
 
 impl ConvertTo<Location> for Humidity {
-    fn convert_to(&self, conversion_maps: &Vec<ConversionMap>) -> Location {
+    fn convert_to(&self, conversion_maps: &[ConversionMap]) -> Location {
         for conversion_map in conversion_maps {
             if conversion_map.source.contains(&self.0) {
                 let idx = self.0 - conversion_map.source.start;
@@ -233,7 +233,7 @@ impl ConvertTo<Location> for Humidity {
 }
 
 trait ConvertTo<T> {
-    fn convert_to(&self, conversion_maps: &Vec<ConversionMap>) -> T;
+    fn convert_to(&self, conversion_maps: &[ConversionMap]) -> T;
 }
 
 #[derive(Debug)]
@@ -243,11 +243,11 @@ struct ConversionMap {
 }
 
 trait IntoConversionMap {
-    fn into_conversion_map(&self) -> ConversionMap;
+    fn to_conversion_map(&self) -> ConversionMap;
 }
 
 impl IntoConversionMap for &str {
-    fn into_conversion_map(&self) -> ConversionMap {
+    fn to_conversion_map(&self) -> ConversionMap {
         let nums: Vec<_> = self
             .trim()
             .split(' ')
@@ -255,7 +255,7 @@ impl IntoConversionMap for &str {
             .map(|s| s.parse::<usize>().unwrap())
             .collect();
 
-        let destination_start = *nums.get(0).unwrap();
+        let destination_start = *nums.first().unwrap();
         let source_start = *nums.get(1).unwrap();
         let len = nums.get(2).unwrap();
 
