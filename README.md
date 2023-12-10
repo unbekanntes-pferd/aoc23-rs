@@ -21,4 +21,4 @@ Learn more about Advent of Code and join the global community at https://advento
 Let the coding festivities begin! 🚀🌟
 
 ## Credit
-This README is taken from https://gitlab.dracoon.com/pioneer/advent-of-code/vm and adapted to fit the repo structure
+This README is taken from https://github.com/vlmaier/advent-of-code-2023 and adapted to fit the repo structure
